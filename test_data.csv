@@ -1,0 +1,11 @@
+student_id,subject,grade,attendance,term
+1,Math,85,92,Fall
+2,Science,78,88,Fall
+3,Math,92,95,Spring
+4,Science,88,90,Spring
+5,Math,75,85,Fall
+6,Science,91,96,Spring
+7,Math,82,89,Fall
+8,Science,79,87,Spring
+9,Math,88,93,Fall
+10,Science,84,91,Spring

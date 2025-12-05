@@ -1,0 +1,134 @@
+<DatasetListItem>:
+    text: "Dataset"
+    on_release: app.root.get_screen('dashboard').select_dataset(self.text)
+
+<DashboardScreen>:
+    MDBoxLayout:
+        orientation: 'vertical'
+        
+        MDTopAppBar:
+            title: "EduLens"
+            elevation: 4
+            right_action_items: [["chart-line", lambda x: root.show_trends()], ["robot", lambda x: root.open_chat()], ["refresh", lambda x: root.refresh_datasets()]]
+            md_bg_color: app.theme_cls.primary_color
+        
+        ScrollView:
+            MDBoxLayout:
+                orientation: 'vertical'
+                padding: "16dp"
+                spacing: "16dp"
+                size_hint_y: None
+                height: self.minimum_height
+                
+                # Welcome Card (Responsive)
+                MDCard:
+                    orientation: 'vertical'
+                    padding: "20dp"
+                    spacing: "12dp"
+                    size_hint_y: None
+                    height: self.minimum_height  # RESPONSIVE HEIGHT
+                    elevation: 2
+                    md_bg_color: app.theme_cls.primary_light
+                    
+                    MDLabel:
+                        text: "📚 Your Educational Data"
+                        font_style: "H6"
+                        bold: True
+                        size_hint_y: None
+                        height: self.texture_size[1]
+                        theme_text_color: "Primary"
+                    
+                    MDLabel:
+                        id: insights_label
+                        text: "• Loading insights..."
+                        font_style: "Body2"
+                        size_hint_y: None
+                        height: self.texture_size[1]
+                        theme_text_color: "Secondary"
+                
+                # Status Bar
+                MDBoxLayout:
+                    orientation: 'horizontal'
+                    size_hint_y: None
+                    height: "40dp"
+                    spacing: "8dp"
+                    
+                    MDCard:
+                        size_hint_x: 0.5
+                        padding: "8dp"
+                        elevation: 1
+                        
+                        MDBoxLayout:
+                            MDIcon:
+                                icon: "database"
+                                size_hint_x: 0.3
+                                theme_text_color: "Primary"
+                            
+                            MDLabel:
+                                text: root.status_text
+                                font_style: "Caption"
+                                halign: "center"
+                                theme_text_color: "Secondary"
+                    
+                    MDRaisedButton:
+                        text: "Ask AI"
+                        icon: "robot"
+                        size_hint_x: 0.5
+                        on_release: root.open_chat()
+                        elevation: 2
+                
+                # Datasets Header
+                MDBoxLayout:
+                    orientation: 'horizontal'
+                    size_hint_y: None
+                    height: "40dp"
+                    
+                    MDLabel:
+                        text: "📁 Your Datasets"
+                        font_style: "H6"
+                        bold: True
+                    
+                    Widget:
+                
+                # Dataset List
+                MDCard:
+                    orientation: 'vertical'
+                    padding: "8dp"
+                    size_hint_y: None
+                    height: "220dp"
+                    elevation: 1
+                    
+                    ScrollView:
+                        MDList:
+                            id: dataset_list
+                            spacing: "8dp"
+                
+                # Quick Actions
+                MDBoxLayout:
+                    orientation: 'horizontal'
+                    size_hint_y: None
+                    height: "60dp"
+                    spacing: "12dp"
+                    
+                    MDRaisedButton:
+                        text: "Trends"
+                        icon: "chart-line"
+                        size_hint_x: 0.5
+                        on_release: root.show_trends()
+                        elevation: 2
+                    
+                    MDRaisedButton:
+                        text: "Refresh"
+                        icon: "refresh"
+                        size_hint_x: 0.5
+                        on_release: root.refresh_datasets()
+                        elevation: 2
+                
+                # Footer Note
+                MDLabel:
+                    text: "Tap any dataset for detailed analysis"
+                    font_style: "Caption"
+                    halign: "center"
+                    theme_text_color: "Hint"
+                    size_hint_y: None
+                    height: self.texture_size[1]

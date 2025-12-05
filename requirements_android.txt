@@ -1,0 +1,12 @@
+python3
+kivy==2.3.0
+kivymd==1.2.0
+pandas
+numpy
+matplotlib
+Pillow
+google-generativeai
+supabase
+httpx
+protobuf
+certifi

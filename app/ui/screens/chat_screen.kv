@@ -1,0 +1,57 @@
+<ChatScreen>:
+    MDBoxLayout:
+        orientation: 'vertical'
+        
+        MDTopAppBar:
+            title: "EduLens AI"
+            elevation: 4
+            left_action_items: [["arrow-left", lambda x: root.go_back()]]
+            right_action_items: [["help-circle-outline", lambda x: print("Help")]]
+            md_bg_color: app.theme_cls.primary_color
+        
+        # Chat History
+        ScrollView:
+            id: chat_scroll
+            MDBoxLayout:
+                orientation: 'vertical'
+                padding: ["16dp", "8dp", "16dp", "8dp"]
+                spacing: "12dp"
+                size_hint_y: None
+                height: self.minimum_height
+                
+                MDLabel:
+                    id: chat_display
+                    text: root.chat_history
+                    font_style: "Body1"
+                    size_hint_y: None
+                    height: self.texture_size[1]
+                    theme_text_color: "Primary"
+                    halign: "left"
+                    valign: "top"
+                    markup: True
+        
+        # Input Area
+        MDCard:
+            orientation: 'vertical'
+            size_hint_y: None
+            height: "70dp"
+            elevation: 4
+            padding: ["12dp", "8dp", "12dp", "12dp"]
+            
+            MDBoxLayout:
+                orientation: 'horizontal'
+                spacing: "12dp"
+                
+                MDTextField:
+                    id: input_field
+                    hint_text: "Ask about your educational data..."
+                    mode: "rectangle"
+                    size_hint_x: 0.75
+                    on_text_validate: root.send_message()
+                
+                MDFloatingActionButton:
+                    icon: "send"
+                    size_hint_x: 0.25
+                    elevation: 2
+                    on_release: root.send_message()
+                    md_bg_color: app.theme_cls.primary_color

@@ -1,0 +1,85 @@
+<LoginScreen>:
+    MDBoxLayout:
+        orientation: 'vertical'
+        padding: ["32dp", "48dp", "32dp", "32dp"]
+        spacing: "24dp"
+        
+        # App Logo/Header
+        MDBoxLayout:
+            orientation: 'vertical'
+            size_hint_y: None
+            height: "120dp"
+            spacing: "8dp"
+            
+            MDLabel:
+                text: "📚"
+                font_style: "H2"
+                halign: "center"
+                size_hint_y: None
+                height: self.texture_size[1]
+            
+            MDLabel:
+                text: "EduLens"
+                font_style: "H4"
+                bold: True
+                halign: "center"
+                size_hint_y: None
+                height: self.texture_size[1]
+                theme_text_color: "Primary"
+            
+            MDLabel:
+                text: "Educational Data Analytics"
+                font_style: "Subtitle1"
+                halign: "center"
+                size_hint_y: None
+                height: self.texture_size[1]
+                theme_text_color: "Secondary"
+        
+        Widget:
+            size_hint_y: 0.2
+        
+        # Login Options
+        MDBoxLayout:
+            orientation: 'vertical'
+            size_hint_y: None
+            height: "180dp"
+            spacing: "16dp"
+            
+            MDRaisedButton:
+                text: "Sign in with Google"
+                icon: "google"
+                pos_hint: {"center_x": 0.5}
+                size_hint_x: 0.8
+                on_release: root.login_with_google()
+                md_bg_color: "#4285F4"
+                theme_text_color: "Custom"
+                text_color: 1, 1, 1, 1
+                elevation: 2
+            
+            MDLabel:
+                text: "or"
+                font_style: "Caption"
+                halign: "center"
+                size_hint_y: None
+                height: self.texture_size[1]
+                theme_text_color: "Hint"
+            
+            MDRaisedButton:
+                text: "Continue as Guest"
+                icon: "account"
+                pos_hint: {"center_x": 0.5}
+                size_hint_x: 0.8
+                on_release: root.skip_login()
+                elevation: 2
+        
+        Widget:
+            size_hint_y: 0.3
+        
+        # Footer
+        MDLabel:
+            text: "SDG 4: Quality Education"
+            font_style: "Caption"
+            halign: "center"
+            theme_text_color: "Secondary"
+            size_hint_y: None
+            height: self.texture_size[1]

@@ -1,0 +1,11 @@
+student_id,name,subject,grade,attendance,term,gender
+1,John Doe,Math,85,92,Fall,Male
+2,Jane Smith,Science,78,88,Fall,Female
+3,Bob Johnson,Math,92,95,Spring,Male
+4,Alice Brown,Science,88,90,Spring,Female
+5,Charlie Wilson,Math,75,85,Fall,Male
+6,Diana Lee,Science,91,96,Spring,Female
+7,Edward Clark,Math,82,89,Fall,Male
+8,Fiona Adams,Science,79,87,Spring,Female
+9,George Miller,Math,88,93,Fall,Male
+10,Hannah Davis,Science,84,91,Spring,Female

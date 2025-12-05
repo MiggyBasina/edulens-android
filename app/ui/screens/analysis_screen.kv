@@ -1,0 +1,84 @@
+<AnalysisScreen>:
+    dataset_name: ""
+    dataset_info: ""
+    
+    MDBoxLayout:
+        orientation: 'vertical'
+        
+        MDTopAppBar:
+            title: "Data Analysis"
+            elevation: 4
+            left_action_items: [["arrow-left", lambda x: root.go_back()]]
+            right_action_items: [["chart-box", lambda x: root.show_visualization()], ["download", lambda x: root.export_data()]]
+            md_bg_color: app.theme_cls.primary_color
+        
+        ScrollView:
+            MDBoxLayout:
+                orientation: 'vertical'
+                padding: ["16dp", "8dp", "16dp", "16dp"]
+                spacing: "16dp"
+                size_hint_y: None
+                height: self.minimum_height
+                
+                # Dataset Header
+                MDCard:
+                    orientation: 'vertical'
+                    padding: "20dp"
+                    spacing: "12dp"
+                    size_hint_y: None
+                    height: self.minimum_height
+                    elevation: 2
+                    md_bg_color: app.theme_cls.primary_light
+                    
+                    MDLabel:
+                        text: root.dataset_name
+                        font_style: "H5"
+                        bold: True
+                        size_hint_y: None
+                        height: self.texture_size[1]
+                        theme_text_color: "Primary"
+                    
+                    MDBoxLayout:
+                        orientation: 'horizontal'
+                        size_hint_y: None
+                        height: "50dp"
+                        spacing: "12dp"
+                        
+                        MDRaisedButton:
+                            text: "Ask AI"
+                            icon: "robot"
+                            size_hint_x: 0.5
+                            on_release: root.ask_about_data()
+                        
+                        MDRaisedButton:
+                            text: "Back"
+                            icon: "arrow-left"
+                            size_hint_x: 0.5
+                            on_release: root.go_back()
+                
+                # Dataset Information
+                MDCard:
+                    orientation: 'vertical'
+                    size_hint_y: None
+                    height: self.minimum_height
+                    elevation: 1
+                    
+                    MDLabel:
+                        text: "Dataset Information"
+                        font_style: "H6"
+                        bold: True
+                        size_hint_y: None
+                        height: self.texture_size[1]
+                        theme_text_color: "Primary"
+                        padding: ["16dp", "12dp", "16dp", "8dp"]
+                    
+                    MDLabel:
+                        id: info_label
+                        text: root.dataset_info
+                        font_style: "Body2"
+                        size_hint_y: None
+                        height: self.texture_size[1]
+                        theme_text_color: "Secondary"
+                        halign: "left"
+                        valign: "top"
+                        padding: ["16dp", "0dp", "16dp", "16dp"]
