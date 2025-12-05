@@ -98,18 +98,18 @@ jobs:
         # Backup original main.py
         cp main.py main.py.backup 2>/dev/null || true
 
-        # Create super simple test
+        # Create super simple test using a quoted heredoc
         cat > test_main.py << 'EOF'
         from kivy.app import App
         from kivy.uix.label import Label
 
-class TestApp(App):
-    def build(self):
-        return Label(text='✅ EduLens Test - Working!')
+        class TestApp(App):
+            def build(self):
+                return Label(text='✅ EduLens Test - Working!')
 
-if __name__ == '__main__':
-    TestApp().run()
-EOF
+        if __name__ == '__main__':
+            TestApp().run()
+        EOF
 
         # Temporarily use test
         cp test_main.py main.py
@@ -158,7 +158,7 @@ EOF
         echo "source.include_exts = py,png,jpg,kv,ttf,json,txt" >> buildozer.spec
         echo "version = 1.0.0" >> buildozer.spec
         echo "" >> buildozer.spec
-        echo "# REAL REQUIREMENTS (avoid heavy C-exts like pandas if possible)" >> buildozer.spec
+        echo "# REAL REQUIREMENTS" >> buildozer.spec
         echo "requirements = python3,kivy==2.3.0,kivymd==1.2.0,numpy,Pillow,protobuf,certifi,requests" >> buildozer.spec
         echo "" >> buildozer.spec
         echo "orientation = portrait" >> buildozer.spec
@@ -192,25 +192,4 @@ EOF
           echo "APKs available:"
           ls -lh bin/*.apk
           # Rename real APK
-          mv bin/*.apk bin/edulens-final.apk 2>/dev/null || true
-        else
-          echo "⚠️ Phase 2 failed, but we have Phase 1 backup"
-          echo "At least basic APK works!"
-        fi
-
-    - name: Upload ALL APKs
-      uses: actions/upload-artifact@v4
-      with:
-        name: edulens-apks
-        path: bin/*.apk
-        retention-days: 7
-
-    - name: Upload build logs
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: build-logs
-        path: |
-          build.log
-          build-phase2.log
-        retention-days: 7
+          mv bin/*.apk bin/edul
