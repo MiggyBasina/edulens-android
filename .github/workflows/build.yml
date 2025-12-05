@@ -30,45 +30,14 @@ jobs:
           packages: "platform-tools,cmdline-tools;latest,platforms;android-31"
 
       - name: Accept licenses and verify API 31
-        shell: bash
         run: |
-          set -euo pipefail
           yes | sdkmanager --licenses
           sdkmanager "platforms;android-31" "platform-tools"
           echo "✅ Licenses accepted and API 31 installed"
-          echo "ANDROID_HOME=${ANDROID_HOME}"
           ls -la "${ANDROID_HOME}/platforms" || true
 
-      - name: Cache apt packages
-        uses: actions/cache@v4
-        with:
-          path: /var/cache/apt/archives
-          key: ${{ runner.os }}-apt-${{ github.ref }}
-          restore-keys: |
-            ${{ runner.os }}-apt-
-
-      - name: Cache Buildozer and Gradle
-        uses: actions/cache@v4
-        with:
-          path: |
-            .buildozer
-            .gradle
-          key: ${{ runner.os }}-buildozer-${{ github.ref }}
-          restore-keys: |
-            ${{ runner.os }}-buildozer-
-
-      - name: Cache pip
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-
       - name: Install system dependencies
-        shell: bash
         run: |
-          set -euo pipefail
           sudo apt-get update -y
           sudo apt-get install -y \
             libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev \
@@ -83,18 +52,14 @@ jobs:
           echo "✅ System dependencies installed"
 
       - name: Install Python dependencies
-        shell: bash
         run: |
-          set -euo pipefail
           python3 -m pip install --upgrade pip==24.0
           python3 -m pip install buildozer==1.5.0 cython==0.29.33 virtualenv==20.26.3
           echo "✅ Python packages installed"
 
       - name: Create buildozer.spec
-        shell: bash
         run: |
-          set -euo pipefail
-          cat > buildozer.spec <<EOF
+          cat > buildozer.spec << 'SPEC_EOF'
           [app]
           title = EduLens
           package.name = edulens
@@ -102,33 +67,23 @@ jobs:
           source.dir = .
           source.include_exts = py,png,jpg,kv,ttf,json,txt
           version = 1.0.0
-          requirements = python3,kivy==2.3.0,kivymd==1.2.0,numpy,Pillow,protobuf,certifi,requests,libffi
+          requirements = python3,kivy==2.2.1
           orientation = portrait
           fullscreen = 0
+          android.skip_update = false
+          android.accept_sdk_license = true
+          android.arch = arm64-v8a
 
           [buildozer]
           log_level = 2
 
-          [android]
-          accept_sdk_license = true
-          archs = arm64-v8a,armeabi-v7a
-          api = 31
-          minapi = 21
-          sdk_path = ${ANDROID_HOME}
-
-          [android.permissions]
-          INTERNET = 1
-          ACCESS_NETWORK_STATE = 1
-          EOF
-          echo "✅ buildozer.spec written"
-          echo "—— buildozer.spec ————————————————"
-          sed -n '1,200p' buildozer.spec
-          echo "———————————————————————————————"
+          [android:permissions]
+          INTERNET
+          ACCESS_NETWORK_STATE
+          SPEC_EOF
 
       - name: Build APK (debug)
-        shell: bash
         run: |
-          set -euo pipefail
           buildozer android debug --verbose
         timeout-minutes: 120
 
@@ -144,7 +99,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: build-logs
-          path: |
-            .buildozer/android/platform/*.log
-            .buildozer/*.log
+          path: .buildozer/android/platform/*.log
           retention-days: 7
