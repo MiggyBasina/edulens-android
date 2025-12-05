@@ -12,102 +12,45 @@ jobs:
       with:
         python-version: '3.9'
     
-    - name: Install Buildozer and ALL dependencies
+    - name: Install Buildozer
       run: |
         sudo apt-get update
-        sudo apt-get install -y \
-          git \
-          zip \
-          unzip \
-          openjdk-17-jdk \
-          python3-pip \
-          python3-venv \
-          libffi-dev \
-          libssl-dev \
-          zlib1g-dev \
-          libbz2-dev \
-          libreadline-dev \
-          libsqlite3-dev \
-          libncursesw5-dev \
-          xz-utils \
-          tk-dev \
-          libxml2-dev \
-          libxmlsec1-dev \
-          liblzma-dev
+        sudo apt-get install -y git zip unzip openjdk-17-jdk python3-pip
         pip install buildozer cython==0.29.33
     
-    - name: Create buildozer.spec with FIXED settings
+    - name: Create buildozer.spec
       run: |
-        cat > buildozer.spec << 'EOF'
-[app]
-title = EduLens
-package.name = edulens
-package.domain = org.edulens
-source.dir = .
-source.include_exts = py,png,jpg,kv,ttf,json
-version = 1.0.0
-
-# MINIMAL REQUIREMENTS FOR TEST
-requirements = python3,kivy==2.2.1
-
-orientation = portrait
-fullscreen = 0
-
-# FIXED SETTINGS
-android.skip_update = False  # MUST BE FALSE FOR FIRST BUILD
-android.accept_sdk_license = True
-android.arch = arm64-v8a
-# Use OLDER stable versions
-android.ndk = 23b
-android.sdk = 26
-android.minapi = 21
-android.api = 33
-
-[buildozer]
-log_level = 2
-warn_on_root = 0
-
-[android:permissions]
-INTERNET
-ACCESS_NETWORK_STATE
-EOF
+        echo "[app]" > buildozer.spec
+        echo "title = EduLens" >> buildozer.spec
+        echo "package.name = edulens" >> buildozer.spec
+        echo "package.domain = org.edulens" >> buildozer.spec
+        echo "source.dir = ." >> buildozer.spec
+        echo "source.include_exts = py,png,jpg,kv,ttf" >> buildozer.spec
+        echo "version = 1.0.0" >> buildozer.spec
+        echo "requirements = python3,kivy==2.2.1" >> buildozer.spec
+        echo "orientation = portrait" >> buildozer.spec
+        echo "fullscreen = 0" >> buildozer.spec
+        echo "" >> buildozer.spec
+        echo "# CRITICAL SETTINGS" >> buildozer.spec
+        echo "android.skip_update = false" >> buildozer.spec
+        echo "android.accept_sdk_license = true" >> buildozer.spec
+        echo "android.arch = arm64-v8a" >> buildozer.spec
+        echo "" >> buildozer.spec
+        echo "[android:permissions]" >> buildozer.spec
+        echo "INTERNET" >> buildozer.spec
+        echo "ACCESS_NETWORK_STATE" >> buildozer.spec
     
-    - name: Build APK (allow Android SDK to update)
+    - name: Build APK
       timeout-minutes: 60
       run: |
-        echo "🚀 Starting APK build (first time takes 40-60 minutes)..."
-        echo "This will download Android SDK, NDK, build tools..."
-        
-        # First, clean any previous build
-        rm -rf .buildozer bin || true
-        
-        # Run buildozer with verbose output
-        buildozer -v android debug 2>&1 | tee build.log
-        
-        # Check if APK was created
-        if ls bin/*.apk 1> /dev/null 2>&1; then
-          echo "✅ SUCCESS! APK built successfully!"
-          ls -la bin/*.apk
-        else
-          echo "❌ APK not found. Checking logs..."
-          tail -100 build.log
-          exit 1
-        fi
+        echo "🚀 Starting APK build..."
+        echo "This will take 30-60 minutes for first build..."
+        buildozer -v android debug
     
-    - name: Upload APK if exists
+    - name: Upload APK
       if: success()
       uses: actions/upload-artifact@v4
       with:
         name: edulens-apk
         path: bin/*.apk
         retention-days: 7
-
-    - name: Upload build logs
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: build-logs
-        path: build.log
-        retention-days: 7
-
-
