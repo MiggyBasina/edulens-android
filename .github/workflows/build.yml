@@ -36,48 +36,21 @@ jobs:
       run: |
         sudo apt-get update -y
         sudo apt-get upgrade -y
-
-        # Java
         sudo apt-get install -y openjdk-17-jdk openjdk-11-jdk
         sudo update-alternatives --set java /usr/lib/jvm/java-17-openjdk-amd64/bin/java
-
-        # Autotools + modern macros
         sudo apt-get install -y autoconf automake libtool libtool-bin autoconf-archive
-
-        # Build essentials
         sudo apt-get install -y build-essential ccache cmake ninja-build pkg-config
-
-        # Python dev
         sudo apt-get install -y python3-dev python3-pip python3-venv python3-setuptools
-
-        # Kivy requirements
         sudo apt-get install -y libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev \
           libsdl2-ttf-dev libportmidi-dev libswscale-dev libavformat-dev libavcodec-dev
-
-        # Graphics
         sudo apt-get install -y libgl1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev
-
-        # Multimedia
         sudo apt-get install -y libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
-
-        # Image formats
         sudo apt-get install -y libjpeg-dev libpng-dev libtiff-dev libwebp-dev libfreetype6-dev
-
-        # Audio
         sudo apt-get install -y libmpg123-dev libvorbis-dev libogg-dev libflac-dev
-
-        # Compression
         sudo apt-get install -y zlib1g-dev libbz2-dev liblzma-dev
-
-        # Network/SSL
         sudo apt-get install -y libffi-dev libssl-dev
-
-        # Python runtime support
         sudo apt-get install -y libsqlite3-dev libreadline-dev libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev
-
-        # Utilities
         sudo apt-get install -y git wget curl zip unzip
-
         echo "✅ ALL system dependencies installed"
 
     - name: Install Python packages
@@ -91,7 +64,7 @@ jobs:
 
     - name: Install Android SDK command-line tools
       env:
-        ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
+        ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
       run: |
         mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
         cd $ANDROID_SDK_ROOT/cmdline-tools
@@ -101,6 +74,8 @@ jobs:
         echo "✅ Installed Android SDK command-line tools"
 
     - name: Install Android SDK Platform 31
+      env:
+        ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
       run: |
         yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager \
           --sdk_root=$ANDROID_SDK_ROOT "platforms;android-31" "platform-tools"
@@ -134,7 +109,6 @@ jobs:
         echo "=== PHASE 1: MINIMAL APK ==="
         rm -rf bin || true
         buildozer -v android debug 2>&1 | tee build-phase1.log || true
-
         if ! ls bin/*.apk 1>/dev/null 2>&1; then
           echo "❌ Phase 1 failed. See build-phase1.log for details."
           exit 1
@@ -169,7 +143,6 @@ jobs:
       run: |
         echo "=== PHASE 2: Building real app ==="
         buildozer -v android debug 2>&1 | tee build-phase2.log || true
-
         if ! ls bin/*.apk 1>/dev/null 2>&1; then
           echo "❌ Phase 2 failed. See build-phase2.log for details."
           exit 1
