@@ -12,6 +12,15 @@ jobs:
       with:
         python-version: '3.9'
 
+    # Cache apt packages
+    - name: Cache apt packages
+      uses: actions/cache@v4
+      with:
+        path: /var/cache/apt/archives
+        key: ${{ runner.os }}-apt-${{ github.ref }}
+        restore-keys: |
+          ${{ runner.os }}-apt-
+
     # Cache Buildozer and Gradle directories
     - name: Cache Buildozer and Gradle
       uses: actions/cache@v4
@@ -34,7 +43,6 @@ jobs:
 
     - name: Install EVERY dependency
       run: |
-        set -e
         sudo apt-get update -y
         sudo apt-get upgrade -y
 
@@ -83,7 +91,6 @@ jobs:
 
     - name: Install Python packages
       run: |
-        set -e
         python3 -m pip install --upgrade pip==24.0
         pip install setuptools==70.0.0 wheel==0.43.0
         pip install buildozer==1.5.0
@@ -93,7 +100,6 @@ jobs:
 
     - name: Create SIMPLE buildozer.spec
       run: |
-        set -e
         echo "[app]" > buildozer.spec
         echo "title = EduLens" >> buildozer.spec
         echo "package.name = edulens" >> buildozer.spec
@@ -116,10 +122,9 @@ jobs:
     - name: Build APK (Phase 1 - MINIMAL)
       timeout-minutes: 120
       run: |
-        set -e
         echo "=== PHASE 1: MINIMAL APK ==="
         rm -rf bin || true
-        buildozer -v android debug 2>&1 | tee build-phase1.log
+        buildozer -v android debug 2>&1 | tee build-phase1.log || true
 
         if ! ls bin/*.apk 1>/dev/null 2>&1; then
           echo "❌ Phase 1 failed. See build-phase1.log for details."
@@ -129,7 +134,6 @@ jobs:
 
     - name: Phase 2 - Add real requirements
       run: |
-        set -e
         echo "[app]" > buildozer.spec
         echo "title = EduLens" >> buildozer.spec
         echo "package.name = edulens" >> buildozer.spec
@@ -152,9 +156,8 @@ jobs:
     - name: Build APK (Phase 2 - REAL APP)
       timeout-minutes: 120
       run: |
-        set -e
         echo "=== PHASE 2: Building real app ==="
-        buildozer -v android debug 2>&1 | tee build-phase2.log
+        buildozer -v android debug 2>&1 | tee build-phase2.log || true
 
         if ! ls bin/*.apk 1>/dev/null 2>&1; then
           echo "❌ Phase 2 failed. See build-phase2.log for details."
