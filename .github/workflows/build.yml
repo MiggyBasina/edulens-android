@@ -5,192 +5,123 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
-      ANDROID_HOME: /usr/local/lib/android/sdk
       JAVA_HOME: /usr/lib/jvm/temurin-17-jdk-amd64
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Setup Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.9'
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
 
-    # Cache apt packages
-    - name: Cache apt packages
-      uses: actions/cache@v4
-      with:
-        path: /var/cache/apt/archives
-        key: ${{ runner.os }}-apt-${{ github.ref }}
-        restore-keys: |
-          ${{ runner.os }}-apt-
+      - name: Setup JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
 
-    # Cache Buildozer and Gradle
-    - name: Cache Buildozer and Gradle
-      uses: actions/cache@v4
-      with:
-        path: |
-          .buildozer
-          .gradle
-        key: ${{ runner.os }}-buildozer-${{ github.ref }}
-        restore-keys: |
-          ${{ runner.os }}-buildozer-
+      - name: Setup Android SDK + tools
+        uses: android-actions/setup-android@v3
+        with:
+          packages: |
+            platform-tools
+            cmdline-tools
+            platforms;android-31
+        # installs sdkmanager, platform-tools, and Android API 31
 
-    # Cache pip
-    - name: Cache pip
-      uses: actions/cache@v4
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
+      - name: Cache apt packages
+        uses: actions/cache@v4
+        with:
+          path: /var/cache/apt/archives
+          key: ${{ runner.os }}-apt-${{ github.ref }}
+          restore-keys: |
+            ${{ runner.os }}-apt-
 
-    - name: Install EVERY dependency
-      run: |
-        sudo apt-get update -y
-        sudo apt-get upgrade -y
-        sudo apt-get install -y openjdk-17-jdk autoconf automake libtool libtool-bin autoconf-archive \
-          build-essential ccache cmake ninja-build pkg-config python3-dev python3-pip python3-venv python3-setuptools \
-          libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev libportmidi-dev libswscale-dev libavformat-dev libavcodec-dev \
-          libgl1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
-          libjpeg-dev libpng-dev libtiff-dev libwebp-dev libfreetype6-dev libmpg123-dev libvorbis-dev libogg-dev libflac-dev \
-          zlib1g-dev libbz2-dev liblzma-dev libffi-dev libssl-dev libsqlite3-dev libreadline-dev libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev \
-          git wget curl zip unzip
-        echo "✅ ALL system dependencies installed"
+      - name: Cache Buildozer and Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            .buildozer
+            .gradle
+          key: ${{ runner.os }}-buildozer-${{ github.ref }}
+          restore-keys: |
+            ${{ runner.os }}-buildozer-
 
-    - name: Install Python packages
-      run: |
-        python3 -m pip install --upgrade pip==24.0
-        pip install setuptools==70.0.0 wheel==0.43.0 buildozer==1.5.0 cython==0.29.33 virtualenv==20.26.3
-        echo "✅ Python packages installed"
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
 
-    - name: Install Android SDK command-line tools
-      run: |
-        mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
-        cd $ANDROID_SDK_ROOT/cmdline-tools
-        curl -fsSL -o tools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
-        unzip -q tools.zip -d latest
-        rm tools.zip
-        echo "✅ Installed Android SDK command-line tools"
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y \
+            libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev \
+            libportmidi-dev libswscale-dev libavformat-dev libavcodec-dev \
+            libgl1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev \
+            libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
+            libjpeg-dev libpng-dev libtiff-dev libwebp-dev libfreetype6-dev \
+            libmpg123-dev libvorbis-dev libogg-dev libflac-dev \
+            zlib1g-dev libbz2-dev liblzma-dev libffi-dev libssl-dev \
+            libsqlite3-dev libreadline-dev libncursesw5-dev tk-dev \
+            libxml2-dev libxmlsec1-dev git wget curl zip unzip
+          echo "✅ system dependencies installed"
 
-    - name: Accept licenses and install API 31
-      run: |
-        yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_SDK_ROOT --licenses
-        yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_SDK_ROOT "platforms;android-31" "platform-tools"
-        ls -la $ANDROID_SDK_ROOT/platforms || true
-        echo "✅ API 31 installed"
+      - name: Install Python dependencies
+        run: |
+          python3 -m pip install --upgrade pip==24.0
+          python3 -m pip install buildozer==1.5.0 cython==0.29.33 virtualenv==20.26.3
+          echo "✅ Python packages installed"
 
-    - name: Prime Buildozer private SDK
-      run: |
-        PRIVATE_SDK=".buildozer/android/platform/android-sdk"
-        mkdir -p "$PRIVATE_SDK/platforms"
-        ln -sfn "$ANDROID_SDK_ROOT/platforms/android-31" "$PRIVATE_SDK/platforms/android-31"
-        ls -la "$PRIVATE_SDK/platforms" || true
-        echo "✅ Buildozer private SDK primed with API 31"
+      - name: Create buildozer.spec
+        run: |
+          cat > buildozer.spec <<'EOF'
+          [app]
+          title = EduLens
+          package.name = edulens
+          package.domain = org.edulens
+          source.dir = .
+          source.include_exts = py,png,jpg,kv,ttf,json,txt
+          version = 1.0.0
+          requirements = python3,kivy==2.3.0,kivymd==1.2.0,numpy,Pillow,protobuf,certifi,requests,libffi
+          orientation = portrait
+          fullscreen = 0
 
-    - name: Create SIMPLE buildozer.spec
-      run: |
-        cat > buildozer.spec <<'EOF'
-        [app]
-        title = EduLens
-        package.name = edulens
-        package.domain = org.edulens
-        source.dir = .
-        source.include_exts = py,png,jpg,kv,ttf
-        version = 0.1.0
-        requirements = python3,kivy==2.2.1,libffi
-        orientation = portrait
-        fullscreen = 0
+          [buildozer]
+          log_level = 2
 
-        [buildozer]
-        log_level = 2
+          [android]
+          accept_sdk_license = true
+          archs = arm64-v8a,armeabi-v7a
+          api = 31
+          minapi = 21
+          sdk_path = $ANDROID_HOME
 
-        [android]
-        accept_sdk_license = true
-        archs = arm64-v8a
-        api = 31
-        minapi = 21
-        sdk_path = /usr/local/lib/android/sdk
+          [android.permissions]
+          INTERNET = 1
+          ACCESS_NETWORK_STATE = 1
+          EOF
 
-        [android.permissions]
-        INTERNET = 1
-        ACCESS_NETWORK_STATE = 1
-        EOF
+      - name: Build APK (debug)
+        run: |
+          buildozer android debug --verbose
+        timeout-minutes: 120
 
-    - name: Build APK (Phase 1 - MINIMAL)
-      timeout-minutes: 120
-      run: |
-        echo "=== PHASE 1: MINIMAL APK ==="
-        rm -rf bin || true
-        buildozer -v android debug 2>&1 | tee build-phase1.log || true
-        if ! ls bin/*.apk 1>/dev/null 2>&1; then
-          echo "❌ Phase 1 failed. See build-phase1.log for details."
-          exit 1
-        fi
-        echo "🎉 Phase 1 APK built successfully"
+      - name: Upload APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: edulens-apks
+          path: bin/*.apk
+          retention-days: 7
 
-    - name: Create REAL buildozer.spec
-      run: |
-        cat > buildozer.spec <<'EOF'
-        [app]
-        title = EduLens
-        package.name = edulens
-        package.domain = org.edulens
-        source.dir = .
-        source.include_exts = py,png,jpg,kv,ttf,json,txt
-        version = 1.0.0
-        requirements = python3,kivy==2.3.0,kivymd==1.2.0,numpy,Pillow,protobuf,certifi,requests,libffi
-        orientation = portrait
-        fullscreen = 0
-
-        [buildozer]
-        log_level = 2
-
-        [android]
-        accept_sdk_license = true
-        archs = arm64-v8a,armeabi-v7a
-        api = 31
-        minapi = 21
-        sdk_path = /usr/local/lib/android/sdk
-
-        [android.permissions]
-        INTERNET = 1
-        ACCESS_NETWORK_STATE = 1
-        EOF
-
-    - name: Prime Buildozer private SDK (phase 2)
-      run: |
-        PRIVATE_SDK=".buildozer/android/platform/android-sdk"
-        mkdir -p "$PRIVATE_SDK/platforms"
-        ln -sfn "$ANDROID_SDK_ROOT/platforms/android-31" "$PRIVATE_SDK/platforms/android-31"
-        ls -la "$PRIVATE_SDK/platforms" || true
-        echo "✅ Buildozer private SDK primed with API 31 (phase 2)"
-
-    - name: Build APK (Phase 2 - REAL APP)
-      timeout-minutes: 120
-      run: |
-        echo "=== PHASE 2: Building real app ==="
-        buildozer -v android debug 2>&1 | tee build-phase2.log || true
-        if ! ls bin/*.apk 1>/dev/null 2>&1; then
-          echo "❌ Phase 2 failed. See build-phase2.log for details."
-          exit 1
-        fi
-        echo "🎉 COMPLETE SUCCESS! Real APK built"
-
-    - name: Upload ALL APKs
-      uses: actions/upload-artifact@v4
-      with:
-        name: edulens-apks
-        path: bin/*.apk
-        retention-days: 7
-
-    - name: Upload build logs
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: build-logs
-        path: |
-          build-phase1.log
-          build-phase2.log
-        retention-days: 7
+      - name: Upload build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: .buildozer/android/platform/build-*.log
+          retention-days: 7
