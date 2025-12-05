@@ -108,3 +108,5 @@ EOF
       with:
         name: build-logs
         path: build.log
+        retention-days: 7
+
