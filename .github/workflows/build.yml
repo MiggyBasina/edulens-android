@@ -4,6 +4,10 @@ on: [push, workflow_dispatch]
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      JAVA_HOME: /usr/lib/jvm/temurin-17-jdk-amd64
     steps:
     - uses: actions/checkout@v4
 
@@ -46,9 +50,9 @@ jobs:
         sudo apt-get update -y
         sudo apt-get upgrade -y
 
-        # Java
-        sudo apt-get install -y openjdk-17-jdk openjdk-11-jdk
-        sudo update-alternatives --set java /usr/lib/jvm/java-17-openjdk-amd64/bin/java
+        # Java (17 default)
+        sudo apt-get install -y openjdk-17-jdk
+        sudo update-alternatives --set java ${JAVA_HOME}/bin/java || true
 
         # Autotools + modern macros
         sudo apt-get install -y autoconf automake libtool libtool-bin autoconf-archive
@@ -99,45 +103,51 @@ jobs:
         echo "✅ Python packages installed"
 
     - name: Install Android SDK command-line tools
-      env:
-        ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
       run: |
+        set -e
         mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
         cd $ANDROID_SDK_ROOT/cmdline-tools
-        curl -fo tools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+        curl -fsSL -o tools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
         unzip -q tools.zip -d latest
         rm tools.zip
         echo "✅ Installed Android SDK command-line tools"
 
-    - name: Install Android SDK Platform 31
-      env:
-        ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+    - name: Accept Android SDK licenses and install platform 31
       run: |
-        yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager \
-          --sdk_root=$ANDROID_SDK_ROOT "platforms;android-31" "platform-tools"
+        set -e
+        yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_SDK_ROOT --licenses
+        yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_SDK_ROOT "platforms;android-31" "platform-tools"
+        ls -la $ANDROID_SDK_ROOT/platforms || true
+        echo "✅ SDK licenses accepted, API 31 & platform-tools installed"
 
     - name: Create SIMPLE buildozer.spec
       run: |
-        echo "[app]" > buildozer.spec
-        echo "title = EduLens" >> buildozer.spec
-        echo "package.name = edulens" >> buildozer.spec
-        echo "package.domain = org.edulens" >> buildozer.spec
-        echo "source.dir = ." >> buildozer.spec
-        echo "source.include_exts = py,png,jpg,kv,ttf" >> buildozer.spec
-        echo "version = 0.1.0" >> buildozer.spec
-        echo "requirements = python3,kivy==2.2.1,libffi" >> buildozer.spec
-        echo "orientation = portrait" >> buildozer.spec
-        echo "fullscreen = 0" >> buildozer.spec
-        echo "android.skip_update = false" >> buildozer.spec
-        echo "android.accept_sdk_license = true" >> buildozer.spec
-        echo "android.archs = arm64-v8a" >> buildozer.spec
-        echo "android.api = 31" >> buildozer.spec
-        echo "android.minapi = 21" >> buildozer.spec
-        echo "[buildozer]" >> buildozer.spec
-        echo "log_level = 2" >> buildozer.spec
-        echo "[android:permissions]" >> buildozer.spec
-        echo "INTERNET" >> buildozer.spec
-        echo "ACCESS_NETWORK_STATE" >> buildozer.spec
+        cat > buildozer.spec <<'EOF'
+        [app]
+        title = EduLens
+        package.name = edulens
+        package.domain = org.edulens
+        source.dir = .
+        source.include_exts = py,png,jpg,kv,ttf
+        version = 0.1.0
+        requirements = python3,kivy==2.2.1,libffi
+        orientation = portrait
+        fullscreen = 0
+
+        [buildozer]
+        log_level = 2
+
+        [android]
+        accept_sdk_license = true
+        archs = arm64-v8a
+        api = 31
+        minapi = 21
+        sdk_path = /usr/local/lib/android/sdk
+
+        [android.permissions]
+        INTERNET = 1
+        ACCESS_NETWORK_STATE = 1
+        EOF
 
     - name: Build APK (Phase 1 - MINIMAL)
       timeout-minutes: 120
@@ -154,26 +164,32 @@ jobs:
 
     - name: Phase 2 - Add real requirements
       run: |
-        echo "[app]" > buildozer.spec
-        echo "title = EduLens" >> buildozer.spec
-        echo "package.name = edulens" >> buildozer.spec
-        echo "package.domain = org.edulens" >> buildozer.spec
-        echo "source.dir = ." >> buildozer.spec
-        echo "source.include_exts = py,png,jpg,kv,ttf,json,txt" >> buildozer.spec
-        echo "version = 1.0.0" >> buildozer.spec
-        echo "requirements = python3,kivy==2.3.0,kivymd==1.2.0,numpy,Pillow,protobuf,certifi,requests,libffi" >> buildozer.spec
-        echo "orientation = portrait" >> buildozer.spec
-        echo "fullscreen = 0" >> buildozer.spec
-        echo "android.skip_update = false" >> buildozer.spec
-        echo "android.accept_sdk_license = true" >> buildozer.spec
-        echo "android.archs = arm64-v8a" >> buildozer.spec
-        echo "android.api = 31" >> buildozer.spec
-        echo "android.minapi = 21" >> buildozer.spec
-        echo "[buildozer]" >> buildozer.spec
-        echo "log_level = 2" >> buildozer.spec
-        echo "[android:permissions]" >> buildozer.spec
-        echo "INTERNET" >> buildozer.spec
-        echo "ACCESS_NETWORK_STATE" >> buildozer.spec
+        cat > buildozer.spec <<'EOF'
+        [app]
+        title = EduLens
+        package.name = edulens
+        package.domain = org.edulens
+        source.dir = .
+        source.include_exts = py,png,jpg,kv,ttf,json,txt
+        version = 1.0.0
+        requirements = python3,kivy==2.3.0,kivymd==1.2.0,numpy,Pillow,protobuf,certifi,requests,libffi
+        orientation = portrait
+        fullscreen = 0
+
+        [buildozer]
+        log_level = 2
+
+        [android]
+        accept_sdk_license = true
+        archs = arm64-v8a
+        api = 31
+        minapi = 21
+        sdk_path = /usr/local/lib/android/sdk
+
+        [android.permissions]
+        INTERNET = 1
+        ACCESS_NETWORK_STATE = 1
+        EOF
 
     - name: Build APK (Phase 2 - REAL APP)
       timeout-minutes: 120
