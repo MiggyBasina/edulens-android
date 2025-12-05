@@ -7,52 +7,75 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.9'
+
+    # Cache Buildozer and Gradle directories
+    - name: Cache Buildozer and Gradle
+      uses: actions/cache@v4
+      with:
+        path: |
+          .buildozer
+          .gradle
+        key: ${{ runner.os }}-buildozer-${{ github.ref }}
+        restore-keys: |
+          ${{ runner.os }}-buildozer-
+
+    # Cache pip packages
+    - name: Cache pip
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
     - name: Install EVERY dependency
       run: |
-        # UPDATE EVERYTHING
         sudo apt-get update -y
         sudo apt-get upgrade -y
 
-        # 1. JAVA
+        # Java
         sudo apt-get install -y openjdk-17-jdk openjdk-11-jdk
         sudo update-alternatives --set java /usr/lib/jvm/java-17-openjdk-amd64/bin/java
 
-        # 2. BUILD ESSENTIALS
+        # Autotools + modern macros
+        sudo apt-get install -y autoconf automake libtool libtool-bin autoconf-archive
+
+        # Build essentials
         sudo apt-get install -y build-essential ccache cmake ninja-build pkg-config
 
-        # 3. PYTHON DEVELOPMENT
+        # Python dev
         sudo apt-get install -y python3-dev python3-pip python3-venv python3-setuptools
 
-        # 4. KIVY REQUIREMENTS (CRITICAL!)
-        sudo apt-get install -y libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev
-        sudo apt-get install -y libsdl2-ttf-dev libportmidi-dev libswscale-dev
-        sudo apt-get install -y libavformat-dev libavcodec-dev
+        # Kivy requirements
+        sudo apt-get install -y libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev \
+          libsdl2-ttf-dev libportmidi-dev libswscale-dev libavformat-dev libavcodec-dev
 
-        # 5. OPENGL/GRAPHICS
+        # Graphics
         sudo apt-get install -y libgl1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev
 
-        # 6. MULTIMEDIA
+        # Multimedia
         sudo apt-get install -y libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
 
-        # 7. IMAGE FORMATS
+        # Image formats
         sudo apt-get install -y libjpeg-dev libpng-dev libtiff-dev libwebp-dev libfreetype6-dev
 
-        # 8. AUDIO
+        # Audio
         sudo apt-get install -y libmpg123-dev libvorbis-dev libogg-dev libflac-dev
 
-        # 9. COMPRESSION
+        # Compression
         sudo apt-get install -y zlib1g-dev libbz2-dev liblzma-dev
 
-        # 10. NETWORK/SSL
+        # Network/SSL
         sudo apt-get install -y libffi-dev libssl-dev
 
-        # 11. PYTHON RUNTIME SUPPORT
+        # Python runtime support
         sudo apt-get install -y libsqlite3-dev libreadline-dev libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev
 
-        # 12. AUTOTOOLS (fix libffi autoreconf macros)
-        sudo apt-get install -y autoconf automake libtool
-
-        # 13. UTILITIES
+        # Utilities
         sudo apt-get install -y git wget curl zip unzip
 
         echo "✅ ALL system dependencies installed"
@@ -75,81 +98,35 @@ jobs:
         echo "source.dir = ." >> buildozer.spec
         echo "source.include_exts = py,png,jpg,kv,ttf" >> buildozer.spec
         echo "version = 0.1.0" >> buildozer.spec
-        echo "" >> buildozer.spec
-        echo "# PHASE 1: MINIMAL WORKING" >> buildozer.spec
         echo "requirements = python3,kivy==2.2.1" >> buildozer.spec
-        echo "" >> buildozer.spec
         echo "orientation = portrait" >> buildozer.spec
         echo "fullscreen = 0" >> buildozer.spec
-        echo "" >> buildozer.spec
-        echo "# Android - LET Buildozer HANDLE IT" >> buildozer.spec
         echo "android.skip_update = false" >> buildozer.spec
         echo "android.accept_sdk_license = true" >> buildozer.spec
         echo "android.arch = arm64-v8a" >> buildozer.spec
-        echo "" >> buildozer.spec
         echo "[buildozer]" >> buildozer.spec
         echo "log_level = 2" >> buildozer.spec
-        echo "" >> buildozer.spec
         echo "[android:permissions]" >> buildozer.spec
         echo "INTERNET" >> buildozer.spec
-
-    - name: Create test app (if main.py fails)
-      run: |
-        # Backup original main.py
-        cp main.py main.py.backup 2>/dev/null || true
-
-        # Create super simple test using a quoted heredoc
-        cat > test_main.py << 'EOF'
-        from kivy.app import App
-        from kivy.uix.label import Label
-
-        class TestApp(App):
-            def build(self):
-                return Label(text='✅ EduLens Test - Working!')
-
-        if __name__ == '__main__':
-            TestApp().run()
-        EOF
-
-        # Temporarily use test
-        cp test_main.py main.py
-        echo "Created test app for Phase 1"
+        echo "ACCESS_NETWORK_STATE" >> buildozer.spec
 
     - name: Build APK (Phase 1 - MINIMAL)
       timeout-minutes: 120
       run: |
         echo "=== PHASE 1: MINIMAL APK ==="
-        echo "Building with ONLY: python3 + kivy"
+        rm -rf bin || true
+        buildozer -v android debug 2>&1 | tee build-phase1.log
 
-        # Clean
-        rm -rf .buildozer bin .gradle 2>/dev/null || true
-
-        # Build
-        buildozer -v android debug 2>&1 | tee build.log
-
-        # Check result
         if ls bin/*.apk 1>/dev/null 2>&1; then
           echo "🎉 PHASE 1 SUCCESS! Basic APK works!"
-          ls -lh bin/*.apk
-          echo "KEEPING this APK as backup"
-          cp bin/*.apk bin/phase1-success.apk 2>/dev/null || true
+          cp bin/*.apk bin/phase1-success.apk || true
         else
-          echo "❌ Phase 1 failed. Last error:"
-          tail -50 build.log | grep -i error || tail -200 build.log
-          exit 1
+          echo "❌ Phase 1 failed"
+          tail -100 build-phase1.log
         fi
-
-    - name: Restore original app
-      run: |
-        # Restore original
-        cp main.py.backup main.py 2>/dev/null || true
-        echo "Restored original app"
 
     - name: Phase 2 - Add real requirements
       run: |
-        echo "=== PHASE 2: Adding real packages ==="
-        echo "Creating new spec with your actual requirements"
-
         echo "[app]" > buildozer.spec
         echo "title = EduLens" >> buildozer.spec
         echo "package.name = edulens" >> buildozer.spec
@@ -157,20 +134,14 @@ jobs:
         echo "source.dir = ." >> buildozer.spec
         echo "source.include_exts = py,png,jpg,kv,ttf,json,txt" >> buildozer.spec
         echo "version = 1.0.0" >> buildozer.spec
-        echo "" >> buildozer.spec
-        echo "# REAL REQUIREMENTS" >> buildozer.spec
         echo "requirements = python3,kivy==2.3.0,kivymd==1.2.0,numpy,Pillow,protobuf,certifi,requests" >> buildozer.spec
-        echo "" >> buildozer.spec
         echo "orientation = portrait" >> buildozer.spec
         echo "fullscreen = 0" >> buildozer.spec
-        echo "" >> buildozer.spec
         echo "android.skip_update = false" >> buildozer.spec
         echo "android.accept_sdk_license = true" >> buildozer.spec
         echo "android.arch = arm64-v8a" >> buildozer.spec
-        echo "" >> buildozer.spec
         echo "[buildozer]" >> buildozer.spec
         echo "log_level = 2" >> buildozer.spec
-        echo "" >> buildozer.spec
         echo "[android:permissions]" >> buildozer.spec
         echo "INTERNET" >> buildozer.spec
         echo "ACCESS_NETWORK_STATE" >> buildozer.spec
@@ -179,17 +150,28 @@ jobs:
       timeout-minutes: 120
       run: |
         echo "=== PHASE 2: Building real app ==="
-
-        # Clean previous Phase 2 builds but keep Phase 1
-        rm -rf .buildozer .gradle 2>/dev/null || true
-        mkdir -p bin
-
-        # Build with real requirements
         buildozer -v android debug 2>&1 | tee build-phase2.log
 
         if ls bin/*.apk 1>/dev/null 2>&1; then
-          echo "🎉🎉🎉 COMPLETE SUCCESS! REAL APK BUILT!"
-          echo "APKs available:"
-          ls -lh bin/*.apk
-          # Rename real APK
-          mv bin/*.apk bin/edul
+          echo "🎉 COMPLETE SUCCESS! REAL APK BUILT!"
+          mv bin/*.apk bin/edulens-final.apk || true
+        else
+          echo "⚠️ Phase 2 failed, but Phase 1 APK is available"
+        fi
+
+    - name: Upload ALL APKs
+      uses: actions/upload-artifact@v4
+      with:
+        name: edulens-apks
+        path: bin/*.apk
+        retention-days: 7
+
+    - name: Upload build logs
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-logs
+        path: |
+          build-phase1.log
+          build-phase2.log
+        retention-days: 7
