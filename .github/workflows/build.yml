@@ -34,7 +34,6 @@ jobs:
           libxml2-dev \
           libxmlsec1-dev \
           liblzma-dev
-        
         pip install buildozer cython==0.29.33
     
     - name: Create buildozer.spec with FIXED settings
