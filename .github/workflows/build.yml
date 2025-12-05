@@ -28,33 +28,13 @@ jobs:
             platform-tools
             cmdline-tools
             platforms;android-31
-        # installs sdkmanager, platform-tools, and Android API 31
 
-      - name: Cache apt packages
-        uses: actions/cache@v4
-        with:
-          path: /var/cache/apt/archives
-          key: ${{ runner.os }}-apt-${{ github.ref }}
-          restore-keys: |
-            ${{ runner.os }}-apt-
-
-      - name: Cache Buildozer and Gradle
-        uses: actions/cache@v4
-        with:
-          path: |
-            .buildozer
-            .gradle
-          key: ${{ runner.os }}-buildozer-${{ github.ref }}
-          restore-keys: |
-            ${{ runner.os }}-buildozer-
-
-      - name: Cache pip
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
+      - name: Accept licenses and verify API 31
+        run: |
+          yes | sdkmanager --licenses
+          sdkmanager "platforms;android-31" "platform-tools"
+          echo "✅ Licenses accepted and API 31 installed"
+          ls -la $ANDROID_HOME/platforms || true
 
       - name: Install system dependencies
         run: |
@@ -123,5 +103,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: build-logs
-          path: .buildozer/android/platform/build-*.log
+          path: .buildozer/android/platform/*.log
           retention-days: 7
