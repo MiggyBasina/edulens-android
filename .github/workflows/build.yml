@@ -12,15 +12,6 @@ jobs:
       with:
         python-version: '3.9'
 
-    # Cache apt packages
-    - name: Cache apt packages
-      uses: actions/cache@v4
-      with:
-        path: /var/cache/apt/archives
-        key: ${{ runner.os }}-apt-${{ github.ref }}
-        restore-keys: |
-          ${{ runner.os }}-apt-
-
     # Cache Buildozer and Gradle directories
     - name: Cache Buildozer and Gradle
       uses: actions/cache@v4
@@ -98,9 +89,21 @@ jobs:
         pip install virtualenv==20.26.3
         echo "✅ Python packages installed"
 
+    - name: Install Android SDK command-line tools
+      env:
+        ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
+      run: |
+        mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
+        cd $ANDROID_SDK_ROOT/cmdline-tools
+        curl -fo tools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+        unzip -q tools.zip -d latest
+        rm tools.zip
+        echo "✅ Installed Android SDK command-line tools"
+
     - name: Install Android SDK Platform 31
       run: |
-        yes | sdkmanager --sdk_root=$ANDROID_SDK_ROOT "platforms;android-31" "platform-tools"
+        yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager \
+          --sdk_root=$ANDROID_SDK_ROOT "platforms;android-31" "platform-tools"
 
     - name: Create SIMPLE buildozer.spec
       run: |
