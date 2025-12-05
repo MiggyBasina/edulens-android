@@ -1,85 +1,47 @@
 name: Build Android APK
-on:
-  push:
-    branches: [ main ]
-  workflow_dispatch:
+on: [push, workflow_dispatch]
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-      
-    - name: Setup Python
+    - uses: actions/checkout@v3
+    
+    - name: Setup environment
       uses: actions/setup-python@v4
       with:
         python-version: '3.9'
-        
-    - name: Install Buildozer and dependencies
+    
+    - name: Install Buildozer
       run: |
         sudo apt-get update
-        sudo apt-get install -y \
-          git \
-          zip \
-          unzip \
-          openjdk-11-jdk \
-          python3-pip \
-          python3-venv
-        pip3 install buildozer cython==0.29.33
-        
-    - name: Create minimal buildozer.spec for testing
+        sudo apt-get install -y git zip unzip openjdk-11-jdk
+        pip install buildozer cython==0.29.33
+    
+    - name: Build APK
       run: |
-        cat > buildozer.spec << 'EOF'
-[app]
-title = EduLens
-package.name = edulens
-package.domain = org.edulens
-source.dir = .
-source.include_exts = py,png,jpg,kv,ttf,json,txt
-version = 1.0.0
-
-# MINIMAL REQUIREMENTS FOR FIRST BUILD
-requirements = python3,kivy==2.2.1
-
-orientation = portrait
-fullscreen = 0
-
-# CRITICAL FOR SPEED
-android.skip_update = True
-android.accept_sdk_license = True
-android.arch = arm64-v8a
-p4a.branch = 2023.08.13
-
-[buildozer]
-log_level = 2
-
-[android:permissions]
-INTERNET
-ACCESS_NETWORK_STATE
-EOF
+        echo "[app]
+        title = EduLens
+        package.name = edulens
+        package.domain = org.edulens
+        source.dir = .
+        source.include_exts = py,png,jpg,kv,ttf
+        version = 1.0.0
+        requirements = python3,kivy==2.2.0
+        orientation = portrait
+        fullscreen = 0
+        android.arch = arm64-v8a
+        android.skip_update = True
+        android.accept_sdk_license = True
         
-    - name: Add missing __init__.py files
-      run: |
-        # Create all missing __init__.py files
-        touch app/__init__.py
-        touch app/core/__init__.py
-        touch app/ui/__init__.py
-        touch app/ui/screens/__init__.py
-        touch app/utils/__init__.py
+        [android:permissions]
+        INTERNET
+        ACCESS_NETWORK_STATE" > buildozer.spec
         
-    - name: Build APK (Test with minimal setup)
-      timeout-minutes: 40
-      run: |
-        echo "🚀 Starting APK build..."
-        echo "This will take 30-40 minutes..."
-        buildozer -v android debug 2>&1 | tail -50
-        
-    - name: Upload APK if exists
-      if: success()
+        buildozer -v android debug
+    
+    - name: Upload APK
       uses: actions/upload-artifact@v3
       with:
         name: edulens-apk
         path: bin/*.apk
-        retention-days: 7
