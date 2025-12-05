@@ -1,5 +1,7 @@
 name: Build Android APK
-on: [push, workflow_dispatch]
+on:
+  push:
+  workflow_dispatch:
 
 jobs:
   build:
@@ -8,34 +10,65 @@ jobs:
       JAVA_HOME: /usr/lib/jvm/temurin-17-jdk-amd64
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: "3.9"
 
       - name: Setup JDK 17
         uses: actions/setup-java@v3
         with:
-          java-version: '17'
-          distribution: 'temurin'
+          java-version: "17"
+          distribution: "temurin"
 
-      - name: Setup Android SDK + tools
+      - name: Setup Android SDK and tools
         uses: android-actions/setup-android@v3
         with:
-          packages: "platform-tools, cmdline-tools;latest, platforms;android-31"
-        # installs sdkmanager, platform-tools, and Android API 31
+          packages: "platform-tools,cmdline-tools;latest,platforms;android-31"
 
       - name: Accept licenses and verify API 31
+        shell: bash
         run: |
+          set -euo pipefail
           yes | sdkmanager --licenses
           sdkmanager "platforms;android-31" "platform-tools"
           echo "✅ Licenses accepted and API 31 installed"
-          ls -la $ANDROID_HOME/platforms || true
+          echo "ANDROID_HOME=${ANDROID_HOME}"
+          ls -la "${ANDROID_HOME}/platforms" || true
+
+      - name: Cache apt packages
+        uses: actions/cache@v4
+        with:
+          path: /var/cache/apt/archives
+          key: ${{ runner.os }}-apt-${{ github.ref }}
+          restore-keys: |
+            ${{ runner.os }}-apt-
+
+      - name: Cache Buildozer and Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            .buildozer
+            .gradle
+          key: ${{ runner.os }}-buildozer-${{ github.ref }}
+          restore-keys: |
+            ${{ runner.os }}-buildozer-
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
 
       - name: Install system dependencies
+        shell: bash
         run: |
+          set -euo pipefail
           sudo apt-get update -y
           sudo apt-get install -y \
             libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev \
@@ -47,17 +80,21 @@ jobs:
             zlib1g-dev libbz2-dev liblzma-dev libffi-dev libssl-dev \
             libsqlite3-dev libreadline-dev libncursesw5-dev tk-dev \
             libxml2-dev libxmlsec1-dev git wget curl zip unzip
-          echo "✅ system dependencies installed"
+          echo "✅ System dependencies installed"
 
       - name: Install Python dependencies
+        shell: bash
         run: |
+          set -euo pipefail
           python3 -m pip install --upgrade pip==24.0
           python3 -m pip install buildozer==1.5.0 cython==0.29.33 virtualenv==20.26.3
           echo "✅ Python packages installed"
 
       - name: Create buildozer.spec
+        shell: bash
         run: |
-          cat > buildozer.spec <<'EOF'
+          set -euo pipefail
+          cat > buildozer.spec <<EOF
           [app]
           title = EduLens
           package.name = edulens
@@ -77,15 +114,21 @@ jobs:
           archs = arm64-v8a,armeabi-v7a
           api = 31
           minapi = 21
-          sdk_path = $ANDROID_HOME
+          sdk_path = ${ANDROID_HOME}
 
           [android.permissions]
           INTERNET = 1
           ACCESS_NETWORK_STATE = 1
           EOF
+          echo "✅ buildozer.spec written"
+          echo "—— buildozer.spec ————————————————"
+          sed -n '1,200p' buildozer.spec
+          echo "———————————————————————————————"
 
       - name: Build APK (debug)
+        shell: bash
         run: |
+          set -euo pipefail
           buildozer android debug --verbose
         timeout-minutes: 120
 
@@ -101,5 +144,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: build-logs
-          path: .buildozer/android/platform/*.log
+          path: |
+            .buildozer/android/platform/*.log
+            .buildozer/*.log
           retention-days: 7
